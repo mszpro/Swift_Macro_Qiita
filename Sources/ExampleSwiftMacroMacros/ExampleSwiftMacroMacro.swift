@@ -42,6 +42,7 @@ public struct URLMacro: ExpressionMacro {
         in context: some MacroExpansionContext
     ) throws -> ExprSyntax {
         guard let argument = node.argumentList.first?.expression else {
+            context.diagnose(CodingKeysMacroDiagnostic.missingArgument.diagnose(at: node))
             throw URLMacroError.missingArgument
         }
         
@@ -49,22 +50,26 @@ public struct URLMacro: ExpressionMacro {
               let segment = stringLiteralExpr.segments.first?.as(StringSegmentSyntax.self),
               stringLiteralExpr.segments.count == 1
         else {
+            context.diagnose(CodingKeysMacroDiagnostic.argumentNotString.diagnose(at: node))
             throw URLMacroError.argumentNotString
         }
         
         let text = segment.content.text
         
         guard let url = URL(string: text) else {
+            context.diagnose(CodingKeysMacroDiagnostic.invalidURL.diagnose(at: node))
             throw URLMacroError.invalidURL
         }
         
         guard let scheme = url.scheme,
               ["http", "https"].contains(scheme) else {
+            context.diagnose(CodingKeysMacroDiagnostic.invalidURL_Scheme(url.scheme ?? "?").diagnose(at: node))
             throw URLMacroError.invalidURL_Scheme
         }
         
         guard let host = url.host,
               !host.isEmpty else {
+            context.diagnose(CodingKeysMacroDiagnostic.invalidURL_Host.diagnose(at: node))
             throw URLMacroError.invalidURL_Host
         }
         
